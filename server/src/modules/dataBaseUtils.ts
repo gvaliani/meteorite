@@ -17,38 +17,44 @@ export const checkDatabaseStatus = async () => {
     .then(() => {
       console.log('Checking if table "meteorites" has data...')
 
-      db.select('id')
+      return db.select('id')
         .from('meteorites')
         .limit(1)
-        .then((meteorites: [String]) => {
-          if(!meteorites.length) {
-            console.log('Table "meteorites" is empty. Populating table...')
-
-            // Get data from file
-            return readFile('./meteorites.json')
-              .then((ms: any[]) => {
-
-                // Insert data in chunks since SQLite doesn't support bulk insert
-                const chunkSize = 100;
-                for (let i = 0; i < ms.length; i += chunkSize) {
-                  const chunk = ms.slice(i, i + chunkSize);
-
-                  db('meteorites')
-                    .insert(chunk)
-                    .then(() => {
-                      console.log('Table "meteorites" populated successfully.')
-                    })
-                    .catch((err: any) => {
-                      console.log(err)
-                    });
-                }
-              })
-              .catch((err: any) => {
-                console.log(err)
-              });
-          }
-        })
     })
+    .then((meteorites: [String]) => {
+      if(!meteorites.length) {
+        console.log('Table "meteorites" is empty. Populating table meteorites...')
+
+        
+        // Get data from file
+        return readFile('./meteorites.json')
+          .then((ms: any[]) => {
+            // Insert data in chunks since SQLite doesn't support bulk insert
+            const insertPromises = [];
+            const chunkSize = 100;
+            for (let i = 0; i < ms.length; i += chunkSize) {
+              const from = i;
+              const to = i + chunkSize;
+              const chunk = ms.slice(from, to);
+
+              insertPromises.push(db('meteorites')
+                .insert(chunk)
+                .then(() => {
+                  console.log(`${to} of ${ms.length}.`)
+                })
+              )
+            }
+
+            return Promise.all(insertPromises)
+          });
+      }
+    })
+    .catch((err: any) => {
+      console.log(err)
+    })
+    .finally(() => {
+      console.log('Database ready!')
+    });
 }
 
 const createMeteoritesTable = async () => {
