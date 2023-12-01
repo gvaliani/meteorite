@@ -1,5 +1,5 @@
-const { knexInstance: db } = require('./knexInstance');
-const fs = require('fs');
+import db from './knexInstance';
+import fs from 'fs';
 
 export const checkDatabaseStatus = async () => {
   console.log('Checking if table "meteorites" exists...')
@@ -8,7 +8,7 @@ export const checkDatabaseStatus = async () => {
     .from('sqlite_master')
     .where('type', 'table')
     .andWhere('name', 'meteorites')
-    .then((tables: [String]) => {
+    .then((tables: any) => {
       if(!tables.length) {
         console.log('Table "meteorites" doesn\'t exists. Creating table...')
         return createMeteoritesTable()
@@ -21,11 +21,10 @@ export const checkDatabaseStatus = async () => {
         .from('meteorites')
         .limit(1)
     })
-    .then((meteorites: [String]) => {
+    .then((meteorites: any) => {
       if(!meteorites.length) {
         console.log('Table "meteorites" is empty. Populating table meteorites...')
 
-        
         // Get data from file
         return readFile('./meteorites.json')
           .then((ms: any[]) => {
@@ -74,7 +73,7 @@ const createMeteoritesTable = async () => {
     })
 }
 
-const readFile = async (fileName: String) => {
+const readFile = async (fileName: fs.PathOrFileDescriptor) => {
   return new Promise<any>((resolve, reject) => {
     fs.readFile(fileName, 'utf8', (err: any, data: any) => {
       if (err) {

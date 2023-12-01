@@ -1,8 +1,8 @@
-const express = require('express')
+import express from 'express';
+import { checkDatabaseStatus } from './modules/dataBaseUtils';
+
 const app = express()
 const port = 3000
-const { knexInstance: db } = require('./modules/knexInstance');
-const { checkDatabaseStatus } = require('./modules/dataBaseUtils');
 
 app.use((req: any, res: any, next: any) => {
   res.header('Access-Control-Allow-Origin', '*'); // update to match the domain you will make the request from
@@ -11,7 +11,7 @@ app.use((req: any, res: any, next: any) => {
 }); 
 
 app.get('/', (req: any, res: any) => {
-  res.send('Hello World 8!')
+  res.send('Hello World 9!')
 })
 
 app.listen(port, () => {
