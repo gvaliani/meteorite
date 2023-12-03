@@ -1,6 +1,56 @@
 import db from './knexInstance';
 import fs from 'fs';
 
+export enum FilterType { YEAR = 'year' } // In the future we can add more types
+
+interface Filter {
+  field: string,
+  operator?: string,
+  type?: FilterType
+}
+interface Accumulator {
+  sqls: string[];
+  values: string[];
+  filter: { [key: string]: string };
+}
+
+// Get filters from query string
+export const getFiltersFromQuery = (
+  query: string, // Query string from url
+  filters: Array<Filter> // Filters to apply
+): [string, string[], { [key: string]: string }] => {
+  
+  const queryMap: Map<string, string> = new Map(Object.entries(query))
+
+  const where = filters.reduce<Accumulator>((acc, { field, operator = '=', type = null }) => {
+    if (queryMap.has(field)) {
+      const sql = parseQueryFilter(field, operator, type);
+      acc.sqls.push(sql);
+      acc.values.push(queryMap.get(field) || '');
+      acc.filter[field] = queryMap.get(field) || '';
+    }
+
+    return acc;
+  }, { sqls: [], values: [], filter: {} });
+
+  return [where.sqls.join(' AND '), where.values, where.filter]
+}
+
+
+const parseQueryFilter = (field: string, operator: string, type: FilterType | null): string =>  {
+  let sql: string = ''
+  
+  switch (type) {
+    case FilterType.YEAR:
+      sql = `strftime('%Y', ${field}) ${operator} ?`
+      break;
+    default:
+      sql = `${field} ${operator} ?`
+  }
+
+  return sql;
+}
+
 export const checkDatabaseStatus = async () => {
   console.log('Checking if table "meteorites" exists...')
 
