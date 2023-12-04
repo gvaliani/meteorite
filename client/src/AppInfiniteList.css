@@ -1,0 +1,24 @@
+.infinite-list {
+  position: relative;
+  height: 400px;
+  overflow: auto;
+  margin-top: 25px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 10px;
+}
+
+.infinite-list-ul {
+  width: 100%;
+  position: relative;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.infinite-list-more {
+  text-align: center;
+  background-color: #fafafa;
+  border-radius: var(--border-radius);
+  padding: 10px;
+}

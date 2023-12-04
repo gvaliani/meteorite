@@ -1,0 +1,8 @@
+.meteorite-item {
+  display: grid;
+  grid-template-columns: 50px auto;
+  column-gap: 10px;
+  border: 1px solid var(--border-color);
+  padding: 5px 15px;
+  border-radius: var(--border-radius);
+}

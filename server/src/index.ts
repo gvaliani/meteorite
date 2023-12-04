@@ -36,6 +36,8 @@ app.get('/meteorites', (req: any, res: any) => {
     .limit(limit)
     .offset(limit * (page - 1))
 
+  let filterHasChanged = false;
+
   dataPaginatedP
     .then((data) => {
       // If there is no data with the user's filters,
@@ -52,23 +54,28 @@ app.get('/meteorites', (req: any, res: any) => {
         limit = 1
         page = 1
 
+        filterHasChanged = true
+
         // New base query for pagination and count
-        const newDataP = db.select('*')
+        const newDataPaginatedP = db.select('*')
           .from('meteorites')
           .whereRaw(whereFilter, values)
+          .limit(limit)
+          .offset(limit * (page - 1)) // I could use first() but for consistency with previous query I use limit and offset
+          .then((data) => {
+            filter.year = data[0].year.substring(0, 4)
+            return Promise.resolve(data)
+          })
 
         // Fake count. The dataset has more than one meteorite bigger that 100.000
         // but exercise expects receive just one. In other context I would have returned all of them
         const newDataCountP = Promise.resolve([{ count: 1 }]);
-        
-        const newDataPaginatedP = newDataP
-          .limit(limit)
-          .offset(limit * (page - 1)) // I could use first() but for consistency with previous query I use limit and offset
 
         return [
           newDataPaginatedP,  // Paginated data
           newDataCountP,      // Total data
           filter,             // Filters
+          filterHasChanged,   // Alert the user that the filters have been changed
           limit               // Limit
         ]
       }
@@ -77,19 +84,23 @@ app.get('/meteorites', (req: any, res: any) => {
         Promise.resolve(data),              // Paginated data
         dataP.clone().count('id as count'), // Total data
         filter,                             // Filters
+        filterHasChanged,                   // Alert if filter has changed. It never will be changed here. It is returned anyway for consistency
         limit,                              // Limit
       ]
     })
-    .then(([dataPaginatedP, dataCountP, filter, limit]) => {
+    .then(([dataPaginatedP, dataCountP, filter, filterHasChanged, limit]) => {
       Promise
         .all([dataCountP, dataPaginatedP])
-        .then(([dataCount, dataPaginated]) => {
+        .then(async ([dataCount, dataPaginated]) => {
           const total = dataCount[0].count
+
+          await new Promise(resolve => setTimeout(resolve, 1000));
 
           res.send({
             totalPages: Math.ceil(total / limit),
             total: total,
             filter,
+            filterHasChanged,
             data: dataPaginated
           })
         })
