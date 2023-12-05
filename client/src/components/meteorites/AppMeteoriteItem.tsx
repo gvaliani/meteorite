@@ -1,5 +1,5 @@
 import './AppMeteoriteItem.css'
-import { Meteorite } from './types'
+import { Meteorite } from '../../types'
 
 interface AppMeteoriteProps {
   item: Meteorite;

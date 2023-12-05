@@ -1,63 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import './App.css'
-import { useInfiniteQuery } from '@tanstack/react-query'
-import { useDebounce } from "use-debounce";
-import AppInfiniteList from './AppInfiniteList';
-import MeteoriteItem from './AppMeteoriteItem';
-import { Meteorite } from './types'
-
-type FetchParams = {
-  pageParam: number;
-  mass: string;
-  year: string;
-};
-
-type MeteoriteResponse = {
-  data: Meteorite[],
-  total: number,
-  totalPages: number,
-  filter: { year?: string, mass?: string },
-  filterHasChanged: boolean
-};
-
-const fetchMeteorites = ({ pageParam, mass, year }: FetchParams): Promise<MeteoriteResponse> => {
-  let query = `page=${pageParam}&limit=100`
-  
-  if(!!mass) query += `&mass=${mass}`
-  if(!!year) query += `&year=${year}`
-  
-  return fetch(`http://localhost:3000/meteorites?${query}`)
-    .then((res) => res.json())
-}
+import AppInfiniteList from './components/shared/AppInfiniteList/AppInfiniteList';
+import MeteoriteItem from './components/meteorites/AppMeteoriteItem';
+import AppMeteoriteFilterAlert from './components/meteorites/AppMeteoriteFilterAlert';
+import useMeteorites from './api/useMeteorites';
 
 function App() {
   const [yearFilter, setYearFilter] = useState('');
   const [massFilter, setMassFilter] = useState(''); 
-
-  const [queryKey, setQueryKey] = useState(`${yearFilter}-${massFilter}`) 
-  const [debouncedQueryKey] = useDebounce(queryKey, 500);
-  
-  // Update query key when filters change
-  useEffect(() => {
-    setQueryKey(`${yearFilter}-${massFilter}`)
-  }, [yearFilter, massFilter])
-
-  // Alert message if filter has changed from server
-  const messageAlert = (newFilter) => {
-    const nf = Object.entries(newFilter)
-      .reduce((acc: string[], [field, value]) => {
-        acc.push(`${field}: ${value}`)
-
-        return acc
-      }, [])
-
-    return (
-      <div className='warning'>
-        <div>Since there were no results for the selected filters, the search was changed to return the closest meteorite.</div>
-        <div>New filter applied: {nf.join(', ')}</div>
-      </div>
-    )
-  }
 
   const {
     data: response,
@@ -65,26 +15,7 @@ function App() {
     hasNextPage,
     isFetching,
     isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['meteorites', debouncedQueryKey],
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    queryFn: ({ pageParam }) => {
-      return fetchMeteorites({ pageParam, mass: massFilter, year: yearFilter })
-        .then(({ data, total, totalPages, filter, filterHasChanged }) => {
-          let nextPage = pageParam + 1
-
-          return {
-            data: data,
-            nextPage: totalPages >= nextPage ? nextPage : null,
-            meta: { total, filter, filterHasChanged }
-          }
-        })
-    },
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      return lastPage.nextPage
-    },
-  })
+  } = useMeteorites({yearFilter, massFilter})
 
   const meta = !!response ? response.pages[0]?.meta : null
   const meteorites = !!response ? response.pages.flatMap((p) => p.data) : []
@@ -124,7 +55,7 @@ function App() {
       { <div className='text-muted'>Total items found: {totalItems}</div> }
 
       {/*  Alert message if filter has changed from server */}
-      { filterHasChanged && messageAlert(filter) }
+      { filterHasChanged && filter && <AppMeteoriteFilterAlert filter={filter} /> }
 
       {/* No data found */}
       { !isFetching && meteorites.length == 0 && <div>No meteorites were found</div> }
@@ -138,7 +69,6 @@ function App() {
         hasNextPage={hasNextPage}
         fetchNextPage={fetchNextPage}
         isFetchingNextPage={isFetchingNextPage}
-        queryKey={debouncedQueryKey}
       />
     </>
   )

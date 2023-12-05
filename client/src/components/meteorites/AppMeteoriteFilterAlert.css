@@ -1,0 +1,7 @@
+.meteorite-filter-alert {
+  margin: 10px 0;
+  background-color: var(--background-color);
+  border-radius: var(--border-radius);
+  padding: 10px 15px;
+  color: var(--text-color-muted);
+}

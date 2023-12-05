@@ -68,10 +68,11 @@ function AppInfiniteList({ items, ItemTemplate, hasNextPage = false, fetchNextPa
     const scrollContainer = scrollEl.current;
 
     // If the query has changed, reset the scroll position
-    if(previousQueryKey != queryKey) {
-      previousQueryKey = queryKey
-      scrollTop = 0
-    }
+    console.log(previousQueryKey, queryKey)
+    // if(previousQueryKey != queryKey) {
+    //   previousQueryKey = queryKey
+    //   scrollTop = 0
+    // }
     
     // Restore scroll position
     scrollContainer.scrollTop = scrollTop;

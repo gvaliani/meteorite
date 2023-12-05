@@ -1,3 +1,9 @@
+/*
+  Here we have very generic css or helpers classes that can be used anywhere in the app.
+  In a bigger app I would use ITCSS (https://www.xfive.co/blog/itcss-scalable-maintainable-css-architecture/)
+  and css files for each component.
+*/
+
 :root {
   /* Border */
   --border-color: #ccc;
@@ -13,14 +19,6 @@
   width: 768px;
   margin: 0 auto;
   padding: 2rem;
-}
-
-.warning {
-  margin: 10px 0;
-  background-color: var(--background-color);
-  border-radius: var(--border-radius);
-  padding: 10px 15px;
-  color: var(--text-color-muted);
 }
 
 /* Form Styles */
