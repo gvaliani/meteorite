@@ -1,41 +1,14 @@
-import db from './knexInstance';
-import fs from 'fs';
+import db from '../modules/knexInstance';
+import { readFile } from '../helpers/filesystem';
+import { FilterType, MeteoriteFileItem } from '../types';
 
-export enum FilterType { YEAR = 'year' } // In the future we can add more types
+// This could be an environment variable
+const DATA_SET = './meteorites.json';
 
-interface Filter {
-  field: string,
-  operator?: string,
-  type?: FilterType
+export const makeWhere = (field: string, operator: string, value: string | number, type: FilterType | null) => {
+  const sql = parseQueryFilter(field, operator, type)
+  return sql;
 }
-interface Accumulator {
-  sqls: string[];
-  values: string[];
-  filter: { [key: string]: string };
-}
-
-// Get filters from query string
-export const getFiltersFromQuery = (
-  query: string, // Query string from url
-  filters: Array<Filter> // Filters to apply
-): [string, string[], { [key: string]: string }] => {
-  
-  const queryMap: Map<string, string> = new Map(Object.entries(query))
-
-  const where = filters.reduce<Accumulator>((acc, { field, operator = '=', type = null }) => {
-    if (queryMap.has(field)) {
-      const sql = parseQueryFilter(field, operator, type);
-      acc.sqls.push(sql);
-      acc.values.push(queryMap.get(field) || '');
-      acc.filter[field] = queryMap.get(field) || '';
-    }
-
-    return acc;
-  }, { sqls: [], values: [], filter: {} });
-
-  return [where.sqls.join(' AND '), where.values, where.filter]
-}
-
 
 const parseQueryFilter = (field: string, operator: string, type: FilterType | null): string =>  {
   let sql: string = ''
@@ -51,7 +24,7 @@ const parseQueryFilter = (field: string, operator: string, type: FilterType | nu
   return sql;
 }
 
-export const checkDatabaseStatus = async () => {
+export const checkDataStatus = async () => {
   console.log('Checking if table "meteorites" exists...')
 
   return db.select('name')
@@ -76,7 +49,14 @@ export const checkDatabaseStatus = async () => {
         console.log('Table "meteorites" is empty. Populating table meteorites...')
 
         // Get data from file
-        return readFile('./meteorites.json')
+        return readFile(DATA_SET)
+          .then((data: any) => {
+            return JSON.parse(data).map((m: MeteoriteFileItem) => {
+              // Remove weird fields
+              const { name, id, nametype, recclass, mass, fall, year, reclat, reclong, geolocation } = m
+              return { name, id, nametype, recclass, mass, fall, year, reclat, reclong, geolocation }
+            });
+          })
           .then((ms: any[]) => {
             // Insert data in chunks since SQLite doesn't support bulk insert
             const insertPromises = [];
@@ -109,7 +89,7 @@ export const checkDatabaseStatus = async () => {
 const createMeteoritesTable = async () => {
   return db
     .schema
-    .createTable('meteorites', (table: any) => {
+    .createTable('meteorites', (table) => {
       table.integer('id');
       table.string('name');
       table.string('nametype');
@@ -121,27 +101,4 @@ const createMeteoritesTable = async () => {
       table.decimal('reclong');
       table.json('geolocation');
     })
-}
-
-const readFile = async (fileName: fs.PathOrFileDescriptor) => {
-  return new Promise<any>((resolve, reject) => {
-    fs.readFile(fileName, 'utf8', (err: any, data: any) => {
-      if (err) {
-        reject(`Error reading the file: ${err}`)
-        return;
-      }
-  
-      try {
-        const ms = JSON.parse(data).map((m: any) => {
-          // Remove weird fields
-          const { name, id, nametype, recclass, mass, fall, year, reclat, reclong, geolocation } = m
-          return { name, id, nametype, recclass, mass, fall, year, reclat, reclong, geolocation }
-        });
-
-        resolve(ms) 
-      } catch (err) {
-        reject(`Error parsing JSON: ${err}`)
-      }
-    });
-  })
 }
